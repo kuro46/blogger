@@ -13,9 +13,10 @@ type
   FrontMatter = ref object
     createdAt: string
     categories: seq[string]
-  MarkdownFile = ref object
-    frontMatter: FrontMatter
-    body: string ## HTML
+  LazyMarkdownFile = ref object
+    sourcePath: string
+    frontMatter: FrontMatter ## Must read by readFrontMatter()
+    bodyHtml: string ## Must read by readBodyHtml()
 
 proc appHome(): string = expandTilde("~/Blog/")
 
@@ -35,11 +36,16 @@ proc parseFrontMatter(raw: string): FrontMatter =
       elem: TomlValueRef): string = elem.getStr())
   return FrontMatter(createdAt: createdAt, categories: categories)
 
-proc parseMarkdownFile(filePath: string): MarkdownFile =
+proc newMarkdownFile(sourcePath: string): LazyMarkdownFile =
+  let markdownFile = new(LazyMarkdownFile)
+  markdownFile.sourcePath = sourcePath
+  return markdownFile
+
+proc fillMarkdownFile(file: var LazyMarkdownFile, onlyFrontMatter: bool = false) =
   var rawFrontMatter = ""
   var body = ""
   var isFrontMatterSection = false;
-  for line in lines(filePath):
+  for line in lines(file.sourcePath):
     if line.startsWith("==="):
       isFrontMatterSection = not isFrontMatterSection
       continue
@@ -47,16 +53,30 @@ proc parseMarkdownFile(filePath: string): MarkdownFile =
       rawFrontMatter.add(line)
       rawFrontMatter.add("\n")
     else:
-      body.add(line)
-      body.add("\n")
-  let frontMatter = rawFrontMatter.parseFrontMatter()
-  let bodyHtml = markdown(body)
-  return MarkdownFile(frontMatter: frontMatter, body: bodyHtml)
+      if onlyFrontMatter:
+        break
+      else:
+        body.add(line)
+        body.add("\n")
+  file.frontMatter = rawFrontMatter.parseFrontMatter()
+  if not onlyFrontMatter:
+    file.bodyHtml = markdown(body)
+
+proc readFrontMatter(file: var LazyMarkdownFile): FrontMatter =
+  if file.frontMatter != nil: return file.frontMatter
+  fillMarkdownFile(file, onlyFrontMatter = true)
+  return file.frontMatter
+
+proc readBodyHtml(file: var LazyMarkdownFile): string =
+  if file.bodyHtml == "": return file.bodyHtml
+  fillMarkdownFile(file)
+  return file.bodyHtml
 
 proc generateArticleHtml(article: string): string =
   let start = cpuTime()
   let templateHtml = articleHtml()
-  let markdownFile = parseMarkdownFile(appHome() / "articles" / article & ".md")
+  var markdownFile = newMarkdownFile(appHome() / "articles" / article & ".md")
+  markdownFile.fillMarkdownFile()
   var categoriesHtml = ""
   for category in markdownFile.frontMatter.categories:
     categoriesHtml.add("""<li class="category-list-item"><a href="/category/$1">$1</a></li>""" %
@@ -65,7 +85,7 @@ proc generateArticleHtml(article: string): string =
     .replace("$article-title", article)
     .replace("$article-categories", categoriesHtml)
     .replace("$article-date", markdownFile.frontMatter.createdAt)
-    .replace("$article-body", markdownFile.body)
+    .replace("$article-body", markdownFile.bodyHtml)
   echo "$#: Processed article.html for article: $#. (took $#ms)" %
     [now().format("yyyy-MM-dd HH:mm:ss"), article, $toInt(((cpuTime() - start) * 1000))]
 
@@ -80,17 +100,8 @@ proc generateListPage(category: string = ""): string =
   var articleList = newSeq[(string, int64)]()
   var allCategories = newSeq[string]()
   for articleFile in walkFiles(appHome() / "articles" / "*.md"):
-    var isFrontMatterSection = false;
-    var rawFrontMatter = ""
-    for line in lines(articleFile):
-      if line.startsWith("==="):
-        isFrontMatterSection = not isFrontMatterSection
-        continue
-      if not isFrontMatterSection:
-        break
-      rawFrontMatter.add(line)
-      rawFrontMatter.add("\n")
-    let frontMatter = parseFrontMatter(rawFrontMatter)
+    var markdownFile = newMarkdownFile(articleFile)
+    let frontMatter = markdownFile.readFrontMatter()
     allCategories.add(frontMatter.categories)
     if category == "" or frontMatter.categories.contains(category):
       let html = """<li><a href="/article/$1">$1</a> - $2</li>""" % [
