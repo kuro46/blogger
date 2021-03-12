@@ -114,6 +114,8 @@ routes:
     let generated = generateListPage(@"category".decodeUrl())
     if generated == "": resp Http404
     else: resp generated
+  get "/category/?":
+    redirect "/"
   get "/article/@article":
     try:
       resp generateArticleHtml(@"article".decodeUrl())
@@ -123,3 +125,5 @@ routes:
         msg = getCurrentExceptionMsg()
       echo "Error: ", repr(e), " message ", msg
       resp Http404
+  get "/article/?":
+    redirect "/"
