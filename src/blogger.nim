@@ -1,3 +1,4 @@
+import tables
 import algorithm
 import times
 import logging
@@ -14,9 +15,12 @@ type
     createdAt: string
     categories: seq[string]
   LazyMarkdownFile = ref object
+    lastUpdated: int64 # Unix time
     sourcePath: string
     frontMatter: FrontMatter ## Must read by readFrontMatter()
     bodyHtml: string ## Must read by readBodyHtml()
+
+var markdownFileCache {.threadvar.}: TableRef[string, LazyMarkdownFile]
 
 proc appHome(): string = expandTilde("~/Blog/")
 
@@ -36,12 +40,26 @@ proc parseFrontMatter(raw: string): FrontMatter =
       elem: TomlValueRef): string = elem.getStr())
   return FrontMatter(createdAt: createdAt, categories: categories)
 
+proc currentUnixSeconds(): int64 = getTime().toUnix()
+
 proc newMarkdownFile(sourcePath: string): LazyMarkdownFile =
-  let markdownFile = new(LazyMarkdownFile)
-  markdownFile.sourcePath = sourcePath
-  return markdownFile
+  # Init cache table
+  if markdownFileCache == nil:
+    markdownFileCache = newTable[string, LazyMarkdownFile]()
+  let got = markdownFileCache.getOrDefault(sourcePath, nil)
+  if got != nil and got.lastUpdated > currentUnixSeconds() - 300:
+    # If cache found and it is fresh
+    return markdownFileCache[sourcePath]
+  else:
+    let markdownFile = new(LazyMarkdownFile)
+    markdownFile.sourcePath = sourcePath
+    markdownFile.lastUpdated = currentUnixSeconds()
+    markdownFileCache[sourcePath] = markdownFile
+    return markdownFile
 
 proc fillMarkdownFile(file: var LazyMarkdownFile, onlyFrontMatter: bool = false) =
+  if file.bodyHtml != "" and file.frontMatter != nil:
+    return
   var rawFrontMatter = ""
   var body = ""
   var isFrontMatterSection = false;
