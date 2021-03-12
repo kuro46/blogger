@@ -39,7 +39,7 @@ proc parseMarkdownFile(filePath: string): MarkdownFile =
   var body = ""
   var isFrontMatterSection = false;
   for line in lines(filePath):
-    if line.startsWith("---"):
+    if line.startsWith("==="):
       isFrontMatterSection = not isFrontMatterSection
       continue
     if isFrontMatterSection:
@@ -76,7 +76,7 @@ proc generateListPage(category: string = ""): string =
     var isFrontMatterSection = false;
     var rawFrontMatter = ""
     for line in lines(articleFile):
-      if line.startsWith("---"):
+      if line.startsWith("==="):
         isFrontMatterSection = not isFrontMatterSection
         continue
       if not isFrontMatterSection:
