@@ -132,7 +132,8 @@ proc generateListPage(category: string = ""): string =
   if category == "": categoryStr = "すべて"
   else: categoryStr = category
   var allCategoriesHtml = ""
-  for category in allCategories.deduplicate():
+  allCategories.sort()
+  for category in allCategories.deduplicate(isSorted = true):
     allCategoriesHtml.add("""<li class="category-list-item"><a href="/category/$1">$1</a></li>""" %
         [category])
   result = templateHtml.replace("$filter-category", categoryStr)
