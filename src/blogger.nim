@@ -3,7 +3,6 @@ import logging
 import jester
 import uri
 import os
-#import io
 import markdown
 import strutils
 import parsetoml
