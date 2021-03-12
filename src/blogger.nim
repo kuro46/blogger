@@ -1,3 +1,4 @@
+import algorithm
 import times
 import logging
 import jester
@@ -68,10 +69,15 @@ proc generateArticleHtml(article: string): string =
   echo "$#: Processed article.html for article: $#. (took $#ms)" %
     [now().format("yyyy-MM-dd HH:mm:ss"), article, $toInt(((cpuTime() - start) * 1000))]
 
+proc joinString[T](s: seq[T], conv: proc(raw: T): string): string =
+  result = ""
+  for raw in s:
+    result.add(conv(raw))
+
 proc generateListPage(category: string = ""): string =
   let start = cpuTime()
   let templateHtml = listHtml();
-  var articleList = ""
+  var articleList = newSeq[(string, int64)]()
   var allCategories = newSeq[string]()
   for articleFile in walkFiles(appHome() / "articles" / "*.md"):
     var isFrontMatterSection = false;
@@ -87,10 +93,12 @@ proc generateListPage(category: string = ""): string =
     let frontMatter = parseFrontMatter(rawFrontMatter)
     allCategories.add(frontMatter.categories)
     if category == "" or frontMatter.categories.contains(category):
-      articleList.add("""<li><a href="/article/$1">$1</a> - $2</li>""" % [
-          splitFile(articleFile).name, frontMatter.createdAt])
+      let html = """<li><a href="/article/$1">$1</a> - $2</li>""" % [
+          splitFile(articleFile).name, frontMatter.createdAt]
+      articleList.add((html, frontMatter.createdAt.parse("yyyy/MM/dd").toTime().toUnix()))
   if category != "" and articleList.len == 0:
     return ""
+  sort(articleList, proc(x, y: (string, int64)): int = x[1].cmp(y[1]), SortOrder.Descending)
   var categoryStr: string
   if category == "": categoryStr = "すべて"
   else: categoryStr = category
@@ -100,7 +108,7 @@ proc generateListPage(category: string = ""): string =
         [category])
   result = templateHtml.replace("$filter-category", categoryStr)
     .replace("$all-categories", allCategoriesHtml)
-    .replace("$articles", articleList)
+    .replace("$articles", joinString(articleList, proc(raw: (string, int64)): string = raw[0]))
   echo "$#: Processed list.html for category: '$#'. (took $#ms)" %
     [now().format("yyyy-MM-dd HH:mm:ss"), categoryStr, $toInt(((cpuTime() -
         start) * 1000))]
