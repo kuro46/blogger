@@ -122,8 +122,8 @@ proc generateListPage(category: string = ""): string =
     let frontMatter = markdownFile.readFrontMatter()
     allCategories.add(frontMatter.categories)
     if category == "" or frontMatter.categories.contains(category):
-      let html = """<li><a href="/article/$1">$1</a> - $2</li>""" % [
-          splitFile(articleFile).name, frontMatter.createdAt]
+      let html = """<li>$1 - <a href="/article/$2">$2</a></li>""" % [
+          frontMatter.createdAt, splitFile(articleFile).name]
       articleList.add((html, frontMatter.createdAt.parse("yyyy/MM/dd").toTime().toUnix()))
   if category != "" and articleList.len == 0:
     return ""
