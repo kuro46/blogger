@@ -127,3 +127,5 @@ routes:
       resp Http404
   get "/article/?":
     redirect "/"
+  get "/about/?":
+    resp readFile(appHome() / "about.html")
