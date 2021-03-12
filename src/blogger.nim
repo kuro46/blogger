@@ -104,8 +104,8 @@ proc generateArticleHtml(article: string): string =
     .replace("$article-categories", categoriesHtml)
     .replace("$article-date", markdownFile.frontMatter.createdAt)
     .replace("$article-body", markdownFile.bodyHtml)
-  echo "$#: Processed article.html for article: $#. (took $#ms)" %
-    [now().format("yyyy-MM-dd HH:mm:ss"), article, $toInt(((cpuTime() - start) * 1000))]
+  echo "$#: Processed article.html for article: $#. (took $#μs)" %
+    [now().format("yyyy-MM-dd HH:mm:ss"), article, $toInt(((cpuTime() - start) * 1000000))]
 
 proc joinString[T](s: seq[T], conv: proc(raw: T): string): string =
   result = ""
@@ -138,9 +138,9 @@ proc generateListPage(category: string = ""): string =
   result = templateHtml.replace("$filter-category", categoryStr)
     .replace("$all-categories", allCategoriesHtml)
     .replace("$articles", joinString(articleList, proc(raw: (string, int64)): string = raw[0]))
-  echo "$#: Processed list.html for category: '$#'. (took $#ms)" %
+  echo "$#: Processed list.html for category: '$#'. (took $#μs)" %
     [now().format("yyyy-MM-dd HH:mm:ss"), categoryStr, $toInt(((cpuTime() -
-        start) * 1000))]
+        start) * 1000000))]
 
 routes:
   get "/":
