@@ -31,10 +31,11 @@ proc styleCss(): string =
 proc parseFrontMatter(raw: string): FrontMatter =
   let root = parsetoml.parseString(raw)
   let createdAt = root["created_at"].getStr()
-  let categories = root["categories"].getElems().map(proc(elem: TomlValueRef): string = elem.getStr())
+  let categories = root["categories"].getElems().map(proc(
+      elem: TomlValueRef): string = elem.getStr())
   return FrontMatter(createdAt: createdAt, categories: categories)
 
-proc parseMarkdownFile(filePath: string): MarkdownFile = 
+proc parseMarkdownFile(filePath: string): MarkdownFile =
   var rawFrontMatter = ""
   var body = ""
   var isFrontMatterSection = false;
@@ -58,7 +59,8 @@ proc generateArticleHtml(article: string): string =
   let markdownFile = parseMarkdownFile(appHome() / "articles" / article & ".md")
   var categoriesHtml = ""
   for category in markdownFile.frontMatter.categories:
-    categoriesHtml.add("""<li class="category-list-item"><a href="/category/$1">$1</a></li>""" % [category])
+    categoriesHtml.add("""<li class="category-list-item"><a href="/category/$1">$1</a></li>""" %
+        [category])
   result = templateHtml
     .replace("$article-title", article)
     .replace("$article-categories", categoriesHtml)
@@ -86,7 +88,8 @@ proc generateListPage(category: string = ""): string =
     let frontMatter = parseFrontMatter(rawFrontMatter)
     allCategories.add(frontMatter.categories)
     if category == "" or frontMatter.categories.contains(category):
-      articleList.add("""<li><a href="/article/$1">$1</a> - $2</li>""" % [splitFile(articleFile).name, frontMatter.createdAt])
+      articleList.add("""<li><a href="/article/$1">$1</a> - $2</li>""" % [
+          splitFile(articleFile).name, frontMatter.createdAt])
   if category != "" and articleList.len == 0:
     return ""
   var categoryStr: string
@@ -94,12 +97,14 @@ proc generateListPage(category: string = ""): string =
   else: categoryStr = category
   var allCategoriesHtml = ""
   for category in allCategories.deduplicate():
-    allCategoriesHtml.add("""<li class="category-list-item"><a href="/category/$1">$1</a></li>""" % [category])
+    allCategoriesHtml.add("""<li class="category-list-item"><a href="/category/$1">$1</a></li>""" %
+        [category])
   result = templateHtml.replace("$filter-category", categoryStr)
     .replace("$all-categories", allCategoriesHtml)
     .replace("$articles", articleList)
   echo "$#: Processed list.html for category: '$#'. (took $#ms)" %
-    [now().format("yyyy-MM-dd HH:mm:ss"), categoryStr, $toInt(((cpuTime() - start) * 1000))]
+    [now().format("yyyy-MM-dd HH:mm:ss"), categoryStr, $toInt(((cpuTime() -
+        start) * 1000))]
 
 routes:
   get "/":
