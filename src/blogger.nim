@@ -65,7 +65,7 @@ proc generateArticleHtml(article: string): string =
     .replace("$article-date", markdownFile.frontMatter.createdAt)
     .replace("$article-body", markdownFile.body)
   echo "$#: Processed article.html for article: $#. (took $#ms)" %
-    [now().format("yyyy-MM-dd"), article, $toInt(((cpuTime() - start) * 1000))]
+    [now().format("yyyy-MM-dd HH:mm:ss"), article, $toInt(((cpuTime() - start) * 1000))]
 
 proc generateListPage(category: string = ""): string =
   let start = cpuTime()
@@ -99,7 +99,7 @@ proc generateListPage(category: string = ""): string =
     .replace("$all-categories", allCategoriesHtml)
     .replace("$articles", articleList)
   echo "$#: Processed list.html for category: '$#'. (took $#ms)" %
-    [now().format("yyyy-MM-dd"), categoryStr, $toInt(((cpuTime() - start) * 1000))]
+    [now().format("yyyy-MM-dd HH:mm:ss"), categoryStr, $toInt(((cpuTime() - start) * 1000))]
 
 routes:
   get "/":
