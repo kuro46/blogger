@@ -22,16 +22,16 @@ type
 
 var markdownFileCache {.threadvar.}: TableRef[string, LazyMarkdownFile]
 
-proc appHome(): string = expandTilde("~/Blog/")
+let appHome = commandLineParams()[0]
 
 proc listHtml(): string =
-  return readFile(appHome() / "resources/list.html")
+  return readFile(appHome / "resources/list.html")
 
 proc articleHtml(): string =
-  return readFile(appHome() / "resources/article.html")
+  return readFile(appHome / "resources/article.html")
 
 proc styleCss(): string =
-  return readFile(appHome() / "resources/style.css")
+  return readFile(appHome / "resources/style.css")
 
 proc parseFrontMatter(raw: string): FrontMatter =
   let root = parsetoml.parseString(raw)
@@ -93,7 +93,7 @@ proc readBodyHtml(file: var LazyMarkdownFile): string =
 proc generateArticleHtml(article: string): string =
   let start = cpuTime()
   let templateHtml = articleHtml()
-  var markdownFile = newMarkdownFile(appHome() / "articles" / article & ".md")
+  var markdownFile = newMarkdownFile(appHome / "articles" / article & ".md")
   markdownFile.fillMarkdownFile()
   var categoriesHtml = ""
   for category in markdownFile.frontMatter.categories:
@@ -117,7 +117,7 @@ proc generateListPage(category: string = ""): string =
   let templateHtml = listHtml();
   var articleList = newSeq[(string, int64)]()
   var allCategories = newSeq[string]()
-  for articleFile in walkFiles(appHome() / "articles" / "*.md"):
+  for articleFile in walkFiles(appHome / "articles" / "*.md"):
     var markdownFile = newMarkdownFile(articleFile)
     let frontMatter = markdownFile.readFrontMatter()
     allCategories.add(frontMatter.categories)
@@ -166,4 +166,4 @@ routes:
   get "/article/?":
     redirect "/"
   get "/about/?":
-    resp readFile(appHome() / "about.html")
+    resp readFile(appHome / "about.html")
